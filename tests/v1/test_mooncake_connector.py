@@ -40,33 +40,25 @@ class TestMooncakeConnectorPing:
         assert connector.support_ping() is True
 
     @pytest.mark.asyncio
-    async def test_ping_returns_zero_when_healthy(self):
-        """ping() should return 0 when store.health_check() returns 0."""
+    @pytest.mark.parametrize(
+        "health_check_return, description",
+        [
+            (0, "healthy"),
+            (1, "not initialized"),
+            (2, "master unreachable"),
+        ],
+    )
+    async def test_ping_forwards_health_check_status(
+        self, health_check_return, description
+    ):
+        """ping() should forward the store.health_check() return value."""
         connector, mock_store = self._make_connector_with_mock_store(
-            health_check_return=0
+            health_check_return=health_check_return
         )
         result = await connector.ping()
-        assert result == 0
-        mock_store.health_check.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_ping_returns_one_when_not_initialized(self):
-        """ping() should return 1 when store.health_check() returns 1."""
-        connector, mock_store = self._make_connector_with_mock_store(
-            health_check_return=1
+        assert result == health_check_return, (
+            f"Expected {health_check_return} ({description}), got {result}"
         )
-        result = await connector.ping()
-        assert result == 1
-        mock_store.health_check.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_ping_returns_two_when_master_unreachable(self):
-        """ping() should return 2 when store.health_check() returns 2."""
-        connector, mock_store = self._make_connector_with_mock_store(
-            health_check_return=2
-        )
-        result = await connector.ping()
-        assert result == 2
         mock_store.health_check.assert_called_once()
 
     @pytest.mark.asyncio
